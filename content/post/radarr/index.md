@@ -46,7 +46,7 @@ Arch Linux和Manjaro的安装命令为
     Description=Radarr Daemon
     After=syslog.target network.target
     [Service]
-    User=cat
+    User=$USER
     Type=simple
 
     ExecStart=/opt/Radarr/Radarr -nobrowser
@@ -57,7 +57,7 @@ Arch Linux和Manjaro的安装命令为
     WantedBy=multi-user.target
     EOF
 
-其中`User=`后面需要修改为实际的用户名。现在就可以通过systemd启动Radarr了
+现在就可以通过systemd启动Radarr了
 
     sudo systemctl -q daemon-reload
     sudo systemctl enable --now -q radarr
