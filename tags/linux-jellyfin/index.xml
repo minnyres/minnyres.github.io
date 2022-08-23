@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Linux, Jellyfin on Free Hamster</title><link>https://minnyres.github.io/tags/linux-jellyfin/</link><description>Recent content in Linux, Jellyfin on Free Hamster</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Sat, 06 Aug 2022 09:17:14 +0800</lastBuildDate><atom:link href="https://minnyres.github.io/tags/linux-jellyfin/index.xml" rel="self" type="application/rss+xml"/><item><title>使用Jellyfin建立自己的影视库</title><link>https://minnyres.github.io/p/jellyfin/</link><pubDate>Sat, 06 Aug 2022 09:17:14 +0800</pubDate><guid>https://minnyres.github.io/p/jellyfin/</guid><description>&lt;img src="https://minnyres.github.io/p/jellyfin/banner-logo-solid.png" alt="Featured image of post 使用Jellyfin建立自己的影视库" />&lt;p>&lt;a class="link" href="https://jellyfin.org" target="_blank" rel="noopener"
+>Jellyfin&lt;/a>是一款开源的媒体管理软件，可以对本地硬盘上的电影、音乐、电子书等资源进行扫描识别整理，建立相应的媒体库。本文主要介绍使用Jellyfin管理电影资源的方法。按照本文的操作步骤，你将可以通过局域网或者互联网访问Jellyfin的Web界面，浏览电影海报，查看电影和演职员信息，并且在线播放视频。虽然Jellyfin可以直接识别硬盘上的视频文件，但是为了方便管理、提升识别正确率、避免影响做种，还是建议使用&lt;a class="link" href="https://radarr.video" target="_blank" rel="noopener"
+>Radarr&lt;/a>为视频文件建立电影目录和硬链接供Jellyfin管理，而不是直接让Jellyfin管理原始视频文件。&lt;/p>
+&lt;h2 id="安装jellyfin">安装Jellyfin&lt;/h2>
+&lt;p>这里介绍在Linux系统下的安装方法。首先安装&lt;code>ffmpeg&lt;/code>。Arch Linux和Manjaro的安装命令为&lt;/p>
+&lt;pre>&lt;code>sudo pacman -S ffmpeg
+&lt;/code>&lt;/pre>
+&lt;p>使用&lt;code>wget&lt;/code>下载Jellyfin。对于X64系统，&lt;/p>
+&lt;pre>&lt;code>wget https://repo.jellyfin.org/releases/server/linux/stable/combined/jellyfin_10.8.3_amd64.tar.gz
+&lt;/code>&lt;/pre>
+&lt;p>对于ARM64系统，&lt;/p>
+&lt;pre>&lt;code>wget https://repo.jellyfin.org/releases/server/linux/stable/combined/jellyfin_10.8.3_arm64.tar.gz
+&lt;/code>&lt;/pre>
+&lt;p>解压并复制到路径&lt;code>/opt&lt;/code>下&lt;/p>
+&lt;pre>&lt;code>tar -xf jellyfin_10.8.3*.tar.gz
+sudo mv jellyfin_10.8.3 /opt
+&lt;/code>&lt;/pre>
+&lt;p>为了方便升级，在&lt;code>/opt&lt;/code>目录下为Jellyfin建立一个符号连接&lt;/p>
+&lt;pre>&lt;code>sudo ln -s jellyfin_10.8.3 /opt/jellyfin
+&lt;/code>&lt;/pre>
+&lt;p>建立一个目录，用在存放Jellyfin的配置、数据、缓存以及日志等&lt;/p>
+&lt;pre>&lt;code>mkdir jellyfin
+&lt;/code>&lt;/pre>
+&lt;p>创建一个脚本，用来启动Jellyfin&lt;/p>
+&lt;pre>&lt;code>JELLYFINDIR=$(pwd)/jellyfin
+cat &amp;lt;&amp;lt; EOF | sudo tee /opt/jellyfin/jellyfin.sh &amp;gt; /dev/null
+#!/bin/bash
+/opt/jellyfin/jellyfin -d $JELLYFINDIR/data -C $JELLYFINDIR/cache -c $JELLYFINDIR/config -l $JELLYFINDIR/log --ffmpeg /usr/bin/ffmpeg
+EOF
+sudo chmod 755 /opt/jellyfin/jellyfin.sh
+&lt;/code>&lt;/pre>
+&lt;p>为Jellyfin添加systemd的service&lt;/p>
+&lt;pre>&lt;code>cat &amp;lt;&amp;lt; EOF | sudo tee /etc/systemd/system/jellyfin.service &amp;gt; /dev/null
+[Unit]
+Description=Jellyfin
+After=network.target
+[Service]
+Type=simple
+User=$USER
+Restart=always
+ExecStart=/opt/jellyfin/jellyfin.sh
+[Install]
+WantedBy=multi-user.target
+EOF
+&lt;/code>&lt;/pre>
+&lt;p>现在就可以通过systemd启动Jellyfin&lt;/p>
+&lt;pre>&lt;code>sudo systemctl -q daemon-reload
+sudo systemctl enable --now -q jellyfin
+&lt;/code>&lt;/pre>
+&lt;h2 id="jellyfin的初始设置">Jellyfin的初始设置&lt;/h2>
+&lt;p>Jellyfin服务器可以通过网页访问。在浏览器中，输入地址&lt;code>http://&amp;lt;IP&amp;gt;:8096&lt;/code>，可以看到Jellyfin的初始设置向导，其中&lt;code>&amp;lt;IP&amp;gt;&lt;/code>需要替换为Linux服务器的IP地址。首先，如图所示，把首选显示语言设为中文。设置好后，点击“下一个”按钮，并按照提示设置用户名和密码。接下来提示添加媒体库，我们先不添加，点击“下一个”按钮跳过。在设置元数据语言这一栏，把语言设为中文，国家设置为中国。在设置远程访问这里，点击“下一个”使用默认选项。最后会提示你设置完成，确认后可以进入Jellyfin的登录页。输入刚才设置的用户名和密码登录。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin1.png"
+width="1958"
+height="706"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin1_hu925bc31f53a7c10593ff2db918c72c94_58874_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin1_hu925bc31f53a7c10593ff2db918c72c94_58874_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="设置首选语言"
+class="gallery-image"
+data-flex-grow="277"
+data-flex-basis="665px"
+>
+&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin2.png"
+width="1980"
+height="1144"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin2_hue3e0f637e41471f828f76dd8f3c63d58_103057_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin2_hue3e0f637e41471f828f76dd8f3c63d58_103057_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="设置用户名和密码"
+class="gallery-image"
+data-flex-grow="173"
+data-flex-basis="415px"
+>
+&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin3.png"
+width="1942"
+height="938"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin3_hu895deb718521b6686c511cb840be7555_39385_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin3_hu895deb718521b6686c511cb840be7555_39385_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="添加媒体库"
+class="gallery-image"
+data-flex-grow="207"
+data-flex-basis="496px"
+>&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin4.png"
+width="1952"
+height="800"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin4_hub32558cb873e586473beff278d0b57c8_59921_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin4_hub32558cb873e586473beff278d0b57c8_59921_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="设置元数据语言"
+class="gallery-image"
+data-flex-grow="244"
+data-flex-basis="585px"
+>
+&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin5.png"
+width="1968"
+height="718"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin5_hu361485be091324153d1e97a1d5f915a4_89809_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin5_hu361485be091324153d1e97a1d5f915a4_89809_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="设置远程访问"
+class="gallery-image"
+data-flex-grow="274"
+data-flex-basis="657px"
+>
+&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin6.png"
+width="1716"
+height="1004"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin6_huf80b919b5917fd83d0a993bae64bafeb_41967_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin6_huf80b919b5917fd83d0a993bae64bafeb_41967_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="登录Jellyfin"
+class="gallery-image"
+data-flex-grow="170"
+data-flex-basis="410px"
+>&lt;/p>
+&lt;h2 id="在jellyfin中添加媒体库">在Jellyfin中添加媒体库&lt;/h2>
+&lt;p>登录后，Jellyfin的主页显示会显示一句话“这里没有可显示的内容”。那么我们就点击链接“您想现在创建一个吗？”创建我们的媒体库。点击之后，会出现下方右图所示的页面，然后再点击“添加媒体库”。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin7.png"
+width="724"
+height="342"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin7_hu5fa27e11aa6806bdfd6533131e4646b8_25273_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin7_hu5fa27e11aa6806bdfd6533131e4646b8_25273_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Jellyfin的首页"
+class="gallery-image"
+data-flex-grow="211"
+data-flex-basis="508px"
+>
+&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin8.png"
+width="2834"
+height="772"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin8_hu4806ddce6e29fab341e6b1b26335a75e_63681_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin8_hu4806ddce6e29fab341e6b1b26335a75e_63681_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Jellyfin的媒体库"
+class="gallery-image"
+data-flex-grow="367"
+data-flex-basis="881px"
+>&lt;/p>
+&lt;p>在添加媒体库的选项中，内容类型需要选择“电影”，显示名称可以根据自己的喜好设置，这里设置为“电影”。文件夹是存储视频文件的目录，这里设置为我们之前用Radarr生成硬链接的根目录。其余的选项可以参考下方图片。设置好后，点击确定即可。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin9.png"
+width="1430"
+height="970"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin9_hu6b681d1738e292224461e3fd4e215c18_48384_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin9_hu6b681d1738e292224461e3fd4e215c18_48384_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="添加媒体库的选项"
+class="gallery-image"
+data-flex-grow="147"
+data-flex-basis="353px"
+>
+&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin10.png"
+width="1556"
+height="1050"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin10_hu50f35a23ab7d5dc217cefe3b68d5285a_88169_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin10_hu50f35a23ab7d5dc217cefe3b68d5285a_88169_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="添加媒体库的选项"
+class="gallery-image"
+data-flex-grow="148"
+data-flex-basis="355px"
+>&lt;/p>
+&lt;p>添加完成后，Jellyfin会自动识别设定文件夹下的电影信息，并且联网下载电影、影人的元数据以及图片等。如果视频文件较多，这可能需要一段时间。和Radarr一样，Jellyfin需要从TMDB获取电影信息。TMDB虽然没有被墙，但是在国内受到了DNS污染，推荐使用&lt;a class="link" href="https://github.com/DNSCrypt/dnscrypt-proxy" target="_blank" rel="noopener"
+>DNSCrypt-Proxy&lt;/a>解决DNS污染问题，这样就可以正常使用Jellyfin。Jellyfin处理完成之后，进入“电影”媒体库，就可以看到已经添加的电影的海报。点击海报进入电影详情页，可以查看电影的详细信息并播放电影。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin11.png"
+width="3102"
+height="914"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin11_hu9e2899fecb7cdf61dcd587b2ea97893c_2355268_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin11_hu9e2899fecb7cdf61dcd587b2ea97893c_2355268_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="电影海报墙"
+class="gallery-image"
+data-flex-grow="339"
+data-flex-basis="814px"
+>
+&lt;img src="https://minnyres.github.io/p/jellyfin/jellyfin12.png"
+width="3064"
+height="1282"
+srcset="https://minnyres.github.io/p/jellyfin/jellyfin12_hu928ef6f4d29a0e1db69aaba0c1877ffd_2275275_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jellyfin/jellyfin12_hu928ef6f4d29a0e1db69aaba0c1877ffd_2275275_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="电影详情页"
+class="gallery-image"
+data-flex-grow="239"
+data-flex-basis="573px"
+>&lt;/p>
+&lt;p>最后，除了通过网页访问Jellyfin，我们实际上也可以通过&lt;a class="link" href="https://github.com/jellyfin/jellyfin-media-player" target="_blank" rel="noopener"
+>Jellyfin的本地客户端&lt;/a>来访问Jellyfin。如果想要得到更好的视频播放体验，一定要用客户端而不是网页播放，因为浏览器支持的视频格式有限，使用浏览器播放经常需要在服务器上进行转码，可能占用较多资源并导致播放卡顿。&lt;/p></description></item></channel></rss>

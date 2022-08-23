@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Linux, Radarr, Jackett on Free Hamster</title><link>https://minnyres.github.io/tags/linux-radarr-jackett/</link><description>Recent content in Linux, Radarr, Jackett on Free Hamster</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Wed, 03 Aug 2022 20:57:14 +0800</lastBuildDate><atom:link href="https://minnyres.github.io/tags/linux-radarr-jackett/index.xml" rel="self" type="application/rss+xml"/><item><title>使用Jackett让Radarr添加更多BT站点</title><link>https://minnyres.github.io/p/jackett/</link><pubDate>Wed, 03 Aug 2022 20:57:14 +0800</pubDate><guid>https://minnyres.github.io/p/jackett/</guid><description>&lt;img src="https://minnyres.github.io/p/jackett/jackett.png" alt="Featured image of post 使用Jackett让Radarr添加更多BT站点" />&lt;p>在上一篇文章中，我们介绍了&lt;a class="link" href="https://radarr.video" target="_blank" rel="noopener"
+>Radarr&lt;/a>的基本使用方法。在Radarr中，我们需要在添加BT站点之后，才能搜索下载影视资源。虽然Radarr直接支持的BT站点比较少，但借助&lt;a class="link" href="https://github.com/Jackett/Jackett" target="_blank" rel="noopener"
+>Jackett&lt;/a>，我们可以在Radarr中连接几乎所有的BT站点。本文面向Linux系统，首先介绍Jackett的安装，然后具体说明在Jackett中添加BT站点的方法，最后再介绍让Radarr使用Jackett中的BT站点的方法。&lt;/p>
+&lt;h2 id="安装jackett">安装Jackett&lt;/h2>
+&lt;p>通过&lt;code>wget&lt;/code>命令下载Jackett。对于X64系统，&lt;/p>
+&lt;pre>&lt;code>wget https://github.com/Jackett/Jackett/releases/download/v0.20.1563/Jackett.Binaries.LinuxAMDx64.tar.gz
+&lt;/code>&lt;/pre>
+&lt;p>对于ARM64系统，&lt;/p>
+&lt;pre>&lt;code>wget https://github.com/Jackett/Jackett/releases/download/v0.20.1563/Jackett.Binaries.LinuxARM64.tar.gz
+&lt;/code>&lt;/pre>
+&lt;p>解压并复制到路径&lt;code>/opt&lt;/code>下&lt;/p>
+&lt;pre>&lt;code>tar -xf Jackett*.Linux*.tar.gz
+sudo mv Jackett /opt
+&lt;/code>&lt;/pre>
+&lt;p>让Jackett作为系统服务运行&lt;/p>
+&lt;pre>&lt;code>cd /opt/Jackett/
+sudo ./install_service_systemd.sh
+&lt;/code>&lt;/pre>
+&lt;h2 id="jackett的使用">Jackett的使用&lt;/h2>
+&lt;p>在浏览器中，输入地址&lt;code>http://&amp;lt;IP&amp;gt;:9117&lt;/code>进入Jackett的WEB界面，其中&lt;code>&amp;lt;IP&amp;gt;&lt;/code>需要替换为Linux服务器的IP地址。在&amp;quot;Jackett Configuration&amp;quot;下面可以进行一些简单的设置，第一次使用建议设置一下管理密码。如下图所示，输入密码后，点击按钮&amp;quot;Set password&amp;quot;保存即可。如果网络连接不太好的话，也可以设置代理。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/jackett/jackett1.png"
+width="1484"
+height="292"
+srcset="https://minnyres.github.io/p/jackett/jackett1_hucdf705ae9183cc18b7d135bc86665ddd_42668_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jackett/jackett1_hucdf705ae9183cc18b7d135bc86665ddd_42668_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="设置Jackett的密码"
+class="gallery-image"
+data-flex-grow="508"
+data-flex-basis="1219px"
+>&lt;/p>
+&lt;p>下面我们开始在Jackett中添加BT站点。点击页面上方的按钮&amp;quot;Add indexer&amp;quot;，在弹出的对话框中会出现支持的BT站点的列表。如图所处，我们以TLFBits为例，输入名称进行搜索。搜索完成后，点击蓝色的&lt;code>Configure&lt;/code>按钮进行相应的账户配置。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/jackett/jackett2.png"
+width="1780"
+height="504"
+srcset="https://minnyres.github.io/p/jackett/jackett2_hucd1adfe8ea751f4177219544b3fefcd1_67362_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jackett/jackett2_hucd1adfe8ea751f4177219544b3fefcd1_67362_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="用Jackett添加站点"
+class="gallery-image"
+data-flex-grow="353"
+data-flex-basis="847px"
+>
+&lt;img src="https://minnyres.github.io/p/jackett/jackett3.png"
+width="1764"
+height="594"
+srcset="https://minnyres.github.io/p/jackett/jackett3_hu663988a75d05bdf38f3c40878302c0b5_63425_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jackett/jackett3_hu663988a75d05bdf38f3c40878302c0b5_63425_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="对站点列表进行搜索"
+class="gallery-image"
+data-flex-grow="296"
+data-flex-basis="712px"
+>&lt;/p>
+&lt;p>下面左图是添加TLFBits时出现的配置页，我们填入账号、密码以及验证码后，点击&amp;quot;Okay&amp;quot;，就可以成功添加TLFBits。类似地，我们可以添加更多站点，例如FRDS。下面右图是添加FRDS时的配置页。你会发现，不同站点的配置选项可能是不一样的。添加FRDS只需要填入cookie，页面上对获取cookie的步骤进行了详细的说明，我们只需照做即可。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/jackett/jackett4.png"
+width="1182"
+height="1606"
+srcset="https://minnyres.github.io/p/jackett/jackett4_hu9463f2828f636f392a2106ece3e7287f_119022_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jackett/jackett4_hu9463f2828f636f392a2106ece3e7287f_119022_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="设置TLF"
+class="gallery-image"
+data-flex-grow="73"
+data-flex-basis="176px"
+>
+&lt;img src="https://minnyres.github.io/p/jackett/jackett5.png"
+width="1176"
+height="1232"
+srcset="https://minnyres.github.io/p/jackett/jackett5_huc58246809e57617d72660e105e121fbd_150101_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jackett/jackett5_huc58246809e57617d72660e105e121fbd_150101_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="设置FRDS"
+class="gallery-image"
+data-flex-grow="95"
+data-flex-basis="229px"
+>&lt;/p>
+&lt;h2 id="配合radarr添加站点">配合Radarr添加站点&lt;/h2>
+&lt;p>把站点添加到Jackett以后，就可以在Radarr中连接这些站点了。下图是Jackett的已添加站点列表，在站点名称那一行点击按钮&amp;quot;Copy Torznab Feed&amp;quot;按钮复制连接。然后，在Radarr的页面下，点开设置-&amp;gt;索引器，再点击页面左上方的“+”号并选择Torznab。在Torznab的设置中，我们需要填入站点名称，URL以及API Key，其中URL是刚才在Jackett中复制的链接，而API Key在Jackett页面的右上角可以看到。如下图所示，我们在Radarr中添加了TLFBits，注意在“Category”一栏里最好把和电影有关的都选上。点击保存按钮后，你就已经大功告成了，之后就可以在Radarr中搜索并下载TLFBits的电影资源了。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/jackett/jackett6.png"
+width="1758"
+height="390"
+srcset="https://minnyres.github.io/p/jackett/jackett6_hubec35c0f756398bcd83cf491dbd9f157_74210_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jackett/jackett6_hubec35c0f756398bcd83cf491dbd9f157_74210_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Jackett中添加的站点"
+class="gallery-image"
+data-flex-grow="450"
+data-flex-basis="1081px"
+>
+&lt;img src="https://minnyres.github.io/p/jackett/jackett7.png"
+width="2066"
+height="1358"
+srcset="https://minnyres.github.io/p/jackett/jackett7_hu28d111de529cd69c1aac9412f36a9316_115743_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jackett/jackett7_hu28d111de529cd69c1aac9412f36a9316_115743_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="选择Torznab"
+class="gallery-image"
+data-flex-grow="152"
+data-flex-basis="365px"
+>
+&lt;img src="https://minnyres.github.io/p/jackett/jackett8.png"
+width="1374"
+height="1344"
+srcset="https://minnyres.github.io/p/jackett/jackett8_hu87c88198d12b252d8f61d11765e67e1b_137433_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/jackett/jackett8_hu87c88198d12b252d8f61d11765e67e1b_137433_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="在Radarr中设置Torznab"
+class="gallery-image"
+data-flex-grow="102"
+data-flex-basis="245px"
+>&lt;/p></description></item></channel></rss>

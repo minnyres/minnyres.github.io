@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Linux, Radarr on Free Hamster</title><link>https://minnyres.github.io/tags/linux-radarr/</link><description>Recent content in Linux, Radarr on Free Hamster</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Sun, 10 Jul 2022 20:39:14 +0800</lastBuildDate><atom:link href="https://minnyres.github.io/tags/linux-radarr/index.xml" rel="self" type="application/rss+xml"/><item><title>通过Radarr实现全自动观影</title><link>https://minnyres.github.io/p/radarr/</link><pubDate>Sun, 10 Jul 2022 20:39:14 +0800</pubDate><guid>https://minnyres.github.io/p/radarr/</guid><description>&lt;img src="https://minnyres.github.io/p/radarr/moviedetails.png" alt="Featured image of post 通过Radarr实现全自动观影" />&lt;p>&lt;a class="link" href="https://radarr.video" target="_blank" rel="noopener"
+>Radarr&lt;/a>是一个针对Usenet和BT用户的电影资源管理工具，配合特定的下载工具和Jellyfin、Emby等媒体中心可以实现全自动观影。本文在Linux上安装并配置Radarr，实现同时从多个BT站搜索电影，调用qBittorrent进行下载，并在下载完成后自动创建硬链接供Jellyfin识别等功能。&lt;/p>
+&lt;h2 id="安装radarr">安装Radarr&lt;/h2>
+&lt;p>首先需要安装curl和sqlite。Debian系统可以通过包管理器安装&lt;/p>
+&lt;pre>&lt;code>sudo apt install curl sqlite3
+&lt;/code>&lt;/pre>
+&lt;p>Arch Linux和Manjaro的安装命令为&lt;/p>
+&lt;pre>&lt;code>sudo pacman -S curl sqlite3
+&lt;/code>&lt;/pre>
+&lt;p>使用&lt;code>wget&lt;/code>下载Radarr。对于X64系统，&lt;/p>
+&lt;pre>&lt;code>wget --content-disposition 'http://radarr.servarr.com/v1/update/master/updatefile?os=linux&amp;amp;runtime=netcore&amp;amp;arch=x64'
+&lt;/code>&lt;/pre>
+&lt;p>对于ARM64系统，&lt;/p>
+&lt;pre>&lt;code>wget --content-disposition 'http://radarr.servarr.com/v1/update/master/updatefile?os=linux&amp;amp;runtime=netcore&amp;amp;arch=arm64'
+&lt;/code>&lt;/pre>
+&lt;p>解压安装到&lt;code>/opt&lt;/code>目录下&lt;/p>
+&lt;pre>&lt;code>tar -xvzf Radarr*.linux*.tar.gz
+sudo mv Radarr /opt
+&lt;/code>&lt;/pre>
+&lt;p>添加systemd的service&lt;/p>
+&lt;pre>&lt;code>cat &amp;lt;&amp;lt; EOF | sudo tee /etc/systemd/system/radarr.service &amp;gt; /dev/null
+[Unit]
+Description=Radarr Daemon
+After=syslog.target network.target
+[Service]
+User=$USER
+Type=simple
+ExecStart=/opt/Radarr/Radarr -nobrowser
+TimeoutStopSec=20
+KillMode=process
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
+EOF
+&lt;/code>&lt;/pre>
+&lt;p>现在就可以通过systemd启动Radarr了&lt;/p>
+&lt;pre>&lt;code>sudo systemctl -q daemon-reload
+sudo systemctl enable --now -q radarr
+&lt;/code>&lt;/pre>
+&lt;h2 id="对radarr进行设置">对Radarr进行设置&lt;/h2>
+&lt;p>在浏览器中，输入地址&lt;code>http://&amp;lt;IP&amp;gt;:7878&lt;/code>，其中&lt;code>&amp;lt;IP&amp;gt;&lt;/code>需要替换为Linux服务器的IP地址。打开网页后，我们可以看到Radarr的Web UI，并进行相应的管理和设置。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr1.png"
+width="3182"
+height="840"
+srcset="https://minnyres.github.io/p/radarr/radarr1_hu6a61d8cb94bded218d8586d35c38415a_106420_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr1_hu6a61d8cb94bded218d8586d35c38415a_106420_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Radarr的Web UI"
+class="gallery-image"
+data-flex-grow="378"
+data-flex-basis="909px"
+>&lt;/p>
+&lt;h3 id="设置界面">设置界面&lt;/h3>
+&lt;p>点开Settings-&amp;gt;UI设置Radarr的显示界面。默认的语言是英文，这里我们把语言设置为中文，并且对时间和日期的显示格式进行一些调整，以适应中文用户的习惯。设置好后，点击左上方的“Save Changes”保存设置，然后刷新页面，你会发现Radarr的界面已经变成了中文显示。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr2.jpeg"
+width="1853"
+height="1525"
+srcset="https://minnyres.github.io/p/radarr/radarr2_hu18a99d10810b16de2daa84b5b5b52ecc_192303_480x0_resize_q75_box.jpeg 480w, https://minnyres.github.io/p/radarr/radarr2_hu18a99d10810b16de2daa84b5b5b52ecc_192303_1024x0_resize_q75_box.jpeg 1024w"
+loading="lazy"
+alt="设置语言为中文"
+class="gallery-image"
+data-flex-grow="121"
+data-flex-basis="291px"
+>&lt;/p>
+&lt;h3 id="添加索引器">添加索引器&lt;/h3>
+&lt;p>对于BT用户来说，添加索引器就是要添加BT站点，这样Radarr才能够去搜索影视资源。点开设置-&amp;gt;索引器，然后点击页面左上方的“+”号，就会弹出添加索引器的窗口。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr3.png"
+width="1880"
+height="1478"
+srcset="https://minnyres.github.io/p/radarr/radarr3_hu745212cd32ad2f3f0ca30b3993945928_221262_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr3_hu745212cd32ad2f3f0ca30b3993945928_221262_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="索引器设置"
+class="gallery-image"
+data-flex-grow="127"
+data-flex-basis="305px"
+>
+&lt;img src="https://minnyres.github.io/p/radarr/radarr4.jpeg"
+width="2146"
+height="1583"
+srcset="https://minnyres.github.io/p/radarr/radarr4_huc45b0238feee800a2e3674d48305262d_195789_480x0_resize_q75_box.jpeg 480w, https://minnyres.github.io/p/radarr/radarr4_huc45b0238feee800a2e3674d48305262d_195789_1024x0_resize_q75_box.jpeg 1024w"
+loading="lazy"
+alt="添加索引器"
+class="gallery-image"
+data-flex-grow="135"
+data-flex-basis="325px"
+>&lt;/p>
+&lt;p>可以看到，Torrents下面列出了一些常见的BT站点。当然，我们可以添加的BT站点远不止这些。借助&lt;a class="link" href="https://github.com/Jackett/Jackett" target="_blank" rel="noopener"
+>Jackett&lt;/a>这一工具，我们可以添加现存的大多数BT站点。为了简单，这里先不介绍Jackett的使用，只添加列出的一些BT站点。我们首先尝试添加Rarbg。点击Rarbg，会出现下图的对话框，在“Category”一栏选上除了&amp;quot;Xxx&amp;quot;的所有资源分类以获得更多搜索结果，然后直接点击保存。完成之后，Rarbg就会显示在索引器列表中。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr5.png"
+width="1406"
+height="1578"
+srcset="https://minnyres.github.io/p/radarr/radarr5_hu5d87f3928a3b324a904a8007f096ce4a_165501_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr5_hu5d87f3928a3b324a904a8007f096ce4a_165501_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="添加Rarbg"
+class="gallery-image"
+data-flex-grow="89"
+data-flex-basis="213px"
+>
+&lt;img src="https://minnyres.github.io/p/radarr/radarr6.png"
+width="1380"
+height="412"
+srcset="https://minnyres.github.io/p/radarr/radarr6_hu0cded0aa7df5bfd915e3e1ce3ecefd23_24950_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr6_hu0cded0aa7df5bfd915e3e1ce3ecefd23_24950_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="已经成功添加Rarbg"
+class="gallery-image"
+data-flex-grow="334"
+data-flex-basis="803px"
+>&lt;/p>
+&lt;p>再点击“+”号可以继续添加BT站点，这里我们选择添加FileList.io。由于FileList是Private Tracker (PT)站点，我们需要注册一个账号，并填入自己的用户名和Passkey。同样地，在“Category”一栏选上除了&amp;quot;Xxx&amp;quot;的所有资源分类。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr7.png"
+width="1418"
+height="1410"
+srcset="https://minnyres.github.io/p/radarr/radarr7_huf1d220a0eddc37e04c73bce7a91583c5_120926_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr7_huf1d220a0eddc37e04c73bce7a91583c5_120926_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="添加FileList，需要输入用户名和Passkey"
+class="gallery-image"
+data-flex-grow="100"
+data-flex-basis="241px"
+>&lt;/p>
+&lt;h3 id="添加下载客户端">添加下载客户端&lt;/h3>
+&lt;p>下面我们添加下载客户端。Radarr从BT站搜索到影视资源后，会调用我们添加的BT客户端进行下载。点开设置-&amp;gt;下载客户端，还是点击页面左上方的“+”号，在弹出的页面中可以选择客户端的类型。因为我用的是qBittorrent，所以这里选择qBittorrent。在弹出的qBittorrent设置对话框中，设置好qBittorrent的IP地址、端口、用户名和密码，点击保存即可。注意在qBittorrent设置中，最下方有一个“移除已完成”的选项不建议勾选。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr8.png"
+width="2106"
+height="1538"
+srcset="https://minnyres.github.io/p/radarr/radarr8_hu1b7b49fd4d5a9eeca0f009ebbaf4ef1c_150503_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr8_hu1b7b49fd4d5a9eeca0f009ebbaf4ef1c_150503_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="添加下载客户端"
+class="gallery-image"
+data-flex-grow="136"
+data-flex-basis="328px"
+>
+&lt;img src="https://minnyres.github.io/p/radarr/radarr9.png"
+width="1380"
+height="1538"
+srcset="https://minnyres.github.io/p/radarr/radarr9_hu29b86f5279504e407ea842ee17bf7261_136778_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr9_hu29b86f5279504e407ea842ee17bf7261_136778_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="添加qBittorrent的相关设置"
+class="gallery-image"
+data-flex-grow="89"
+data-flex-basis="215px"
+>&lt;/p>
+&lt;h3 id="媒体管理">媒体管理&lt;/h3>
+&lt;p>然后对媒体管理进行设置。点开设置-&amp;gt;媒体管理，首先按照下面左图进行设置。其中，点击“添加根目录”可以添加相应目录。在Radarr中，根目录就是存放视频文件的路径，可以有多个。这里我们添加了两个，一个存放电影，一个存放纪录片。&lt;/p>
+&lt;p>还需要勾选上选项“重命名影片”。Radarr在下载完成后，为了方便整理，会在选定的根目录下为视频文件创建硬链接。勾选“重命名影片”后，Radarr会按照我们设置的命名规则对硬链接进行重命名，这样有助于媒体中心识别。对影片重命名的格式定义在选项“标准影片格式”中。不同的媒体中心，例如Jellyfin和Plex，它们推荐的命名方式是不同的，这里我们使用&lt;a class="link" href="https://jellyfin.org/docs/general/server/media/movies.html" target="_blank" rel="noopener"
+>Jellyfin推荐的电影命名方式&lt;/a>。为了进行设置，点击左上方“显示高级设置”，在标准影片格式中填入&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-fallback" data-lang="fallback">&lt;span class="line">&lt;span class="cl">{Movie Title} ({Release Year}) - [{Release Group} {Edition Tags} {Quality Title}]
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>然后在影片文件夹格式中填入&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-fallback" data-lang="fallback">&lt;span class="line">&lt;span class="cl">{Movie Title} ({Release Year}) [imdbid-{ImdbId}]
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>如下面右图所示。设置完成后需要保存更改。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr10.png"
+width="3150"
+height="1586"
+srcset="https://minnyres.github.io/p/radarr/radarr10_huf4e67b60f7abfb500227138e7cd64e6a_254542_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr10_huf4e67b60f7abfb500227138e7cd64e6a_254542_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="媒体管理设置"
+class="gallery-image"
+data-flex-grow="198"
+data-flex-basis="476px"
+>
+&lt;img src="https://minnyres.github.io/p/radarr/radarr11.png"
+width="2920"
+height="1450"
+srcset="https://minnyres.github.io/p/radarr/radarr11_hu6fe6189e0036f037d654a16388fddc29_265560_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr11_hu6fe6189e0036f037d654a16388fddc29_265560_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="设置影片文件和文件夹的命名方式"
+class="gallery-image"
+data-flex-grow="201"
+data-flex-basis="483px"
+>&lt;/p>
+&lt;h3 id="影片质量配置">影片质量配置&lt;/h3>
+&lt;p>点开设置-&amp;gt;配置，可以对影片质量进行配置。可以发现，Radarr已经预设了几种不同的影片质量配置，包括Any、HD/720P、SD等，如下方左图所示。注意在默认设置下，影片的语言是英语，这会导致我们只能搜索到英语电影。因此，我们需要点击&amp;quot;Any&amp;quot;图标，并在弹出的对话框中，把语言从&amp;quot;English&amp;quot;修改为&amp;quot;Any&amp;quot;，如下方右图所示。修改完成后，点击保存。类似地，我们可以对HD/720P、SD等质量配置的语言进行设置。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr13.png"
+width="3178"
+height="1604"
+srcset="https://minnyres.github.io/p/radarr/radarr13_huc8287a3dda10078a214a807ca18d59b0_301417_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr13_huc8287a3dda10078a214a807ca18d59b0_301417_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Radarr预设的影片质量配置"
+class="gallery-image"
+data-flex-grow="198"
+data-flex-basis="475px"
+>
+&lt;img src="https://minnyres.github.io/p/radarr/radarr14.png"
+width="2504"
+height="1508"
+srcset="https://minnyres.github.io/p/radarr/radarr14_hu82a90c2ba20999040b96d372df251854_167943_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr14_hu82a90c2ba20999040b96d372df251854_167943_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="设置影片语言"
+class="gallery-image"
+data-flex-grow="166"
+data-flex-basis="398px"
+>&lt;/p>
+&lt;h3 id="设置密码可选">设置密码（可选）&lt;/h3>
+&lt;p>如果你希望提升Radarr服务器的安全性，可以设置访问密码。点开设置-&amp;gt;通用，在“安全”下面，按照下图进行设置，填入你的访问用户名和密码，最后点击左上角的“保存更改”。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr12.png"
+width="2038"
+height="1652"
+srcset="https://minnyres.github.io/p/radarr/radarr12_hu0a5e3a76d3c22a95d7b4c5973a42919f_193816_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr12_hu0a5e3a76d3c22a95d7b4c5973a42919f_193816_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="设置Radarr的访问密码"
+class="gallery-image"
+data-flex-grow="123"
+data-flex-basis="296px"
+>&lt;/p>
+&lt;h2 id="radarr的使用">Radarr的使用&lt;/h2>
+&lt;p>完成Radarr的设置后，我们再对Radarr的使用方法进行介绍。Radarr的功能很多，这里只介绍最基本的使用。&lt;/p>
+&lt;h3 id="添加电影">添加电影&lt;/h3>
+&lt;p>为了通过Radarr完成自动化下载，我们首先需要把电影添加到Radarr的媒体库。点击电影-&amp;gt;添加电影，输入电影名称进行搜索，稍等几秒后界面上就会展示搜索结果，如下方左图所示。然而，大多数人都会遇到搜索失败的情况。这是因为，Radarr需要连接TMDB的数据库进行搜索，然而TMDB的DNS在国内被污染了。因此，为了能够使用Radarr，我们需要解决DNS污染问题。如果有条件的话可以在设置-&amp;gt;通用里添加代理。&lt;/p>
+&lt;p>在搜索结果中，选中你想看的电影后，弹出的对话框中会提供一些选项，如下方右图所示。其中，根目录是创建硬链接的位置，影片质量配置是用来设置电影画质的，默认是&amp;quot;Any&amp;quot;。选项“开始搜索缺失影片”建议不选，否则Radarr会自动搜索电影资源并开始下载。最后，点击右下方的“添加电影”完成添加。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr15.png"
+width="3198"
+height="1510"
+srcset="https://minnyres.github.io/p/radarr/radarr15_hu95fb1465c62f5c792bf627a51f4fa4eb_580739_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr15_hu95fb1465c62f5c792bf627a51f4fa4eb_580739_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="电影搜索结果"
+class="gallery-image"
+data-flex-grow="211"
+data-flex-basis="508px"
+>
+&lt;img src="https://minnyres.github.io/p/radarr/radarr16.png"
+width="2126"
+height="1036"
+srcset="https://minnyres.github.io/p/radarr/radarr16_hu0583a867914d4bdf4ed2061616ed3027_449885_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr16_hu0583a867914d4bdf4ed2061616ed3027_449885_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="添加电影时的选项"
+class="gallery-image"
+data-flex-grow="205"
+data-flex-basis="492px"
+>&lt;/p>
+&lt;h3 id="下载电影">下载电影&lt;/h3>
+&lt;p>在“电影”这一栏，可以看到我们添加的电影。点击电影海报，在出现的界面中，点击搜索，Radarr就会从我们添加的索引器中搜索电影资源。搜索结果中会显示视频的大小、质量以及做种人数等信息，如下方右图所示。选择一个合适的资源，点击资源名称左边的下载按钮，Radarr就会自动调用BT客户端进行下载。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr17.png"
+width="3186"
+height="1232"
+srcset="https://minnyres.github.io/p/radarr/radarr17_hu6e3905a39ea2a18c3a38580c47d81693_708071_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr17_hu6e3905a39ea2a18c3a38580c47d81693_708071_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="已经添加的电影海报"
+class="gallery-image"
+data-flex-grow="258"
+data-flex-basis="620px"
+>
+&lt;img src="https://minnyres.github.io/p/radarr/radarr18.png"
+width="3178"
+height="1730"
+srcset="https://minnyres.github.io/p/radarr/radarr18_hude64dbf7fe79778b325a4fff0a474495_1521503_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr18_hude64dbf7fe79778b325a4fff0a474495_1521503_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="搜索并下载电影资源"
+class="gallery-image"
+data-flex-grow="183"
+data-flex-basis="440px"
+>&lt;/p>
+&lt;p>下载完成后，电影的状态会变成“已下载”，同时Radarr会自动在根目录下创建硬链接，如下图所示。如果你已经把根目录添加到Jellyfin等媒体中心的监控目录，那么媒体中心就会自动识别电影并将其添加到媒体库中。&lt;/p>
+&lt;p>&lt;img src="https://minnyres.github.io/p/radarr/radarr19.png"
+width="1656"
+height="358"
+srcset="https://minnyres.github.io/p/radarr/radarr19_huf7dc914568dfcce4124dbb8d92753f6c_31042_480x0_resize_box_3.png 480w, https://minnyres.github.io/p/radarr/radarr19_huf7dc914568dfcce4124dbb8d92753f6c_31042_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Radarr创建的视频文件硬链接"
+class="gallery-image"
+data-flex-grow="462"
+data-flex-basis="1110px"
+>&lt;/p></description></item></channel></rss>
